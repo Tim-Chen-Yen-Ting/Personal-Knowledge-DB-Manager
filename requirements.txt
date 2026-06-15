@@ -1,7 +1,6 @@
 # One-button install: pip install -r requirements.txt
 
-# Google Gemini LLM (free tier)
-google-generativeai
+# Google Gemini LLM (free tier - called via REST, no SDK needed)
 
 # Database (Supabase - handles both file storage and Postgres)
 supabase

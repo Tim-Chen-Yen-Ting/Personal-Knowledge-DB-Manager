@@ -1,27 +1,41 @@
 import os, json
-import google.generativeai as genai
+import httpx
 from pydantic import BaseModel
 from dotenv import load_dotenv
 
 load_dotenv()
 
-genai.configure(api_key=os.environ["GEMINI_API_KEY"])
-_model = genai.GenerativeModel("gemini-2.0-flash")
+GEMINI_URL = (
+    "https://generativelanguage.googleapis.com/v1beta/models/"
+    "gemini-2.0-flash:generateContent"
+)
 
 
 class WikiEntry(BaseModel):
     title: str
-    content: str        # synthesized markdown — key facts, context, structure
-    tags: list[str]     # 3-6 lowercase topic tags
+    content: str
+    tags: list[str]
 
 
 class QueryResult(BaseModel):
-    answer: str         # full response in markdown
-    sources: list[str]  # wiki entry titles used
+    answer: str
+    sources: list[str]
 
 
-def _parse(response_text: str, model):
-    raw = response_text.strip().removeprefix("```json").removesuffix("```").strip()
+def _call(prompt: str) -> str:
+    key = os.environ["GEMINI_API_KEY"]
+    response = httpx.post(
+        GEMINI_URL,
+        params={"key": key},
+        json={"contents": [{"parts": [{"text": prompt}]}]},
+        timeout=55,
+    )
+    response.raise_for_status()
+    return response.json()["candidates"][0]["content"]["parts"][0]["text"]
+
+
+def _parse(text: str, model):
+    raw = text.strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()
     return model.model_validate(json.loads(raw))
 
 
@@ -40,8 +54,7 @@ Respond with ONLY a JSON object matching this schema:
 
 Write a clear, dense summary as content in markdown. Choose a concise descriptive title. Add 3-6 lowercase tags."""
 
-    response = _model.generate_content(prompt)
-    return _parse(response.text, WikiEntry)
+    return _parse(_call(prompt), WikiEntry)
 
 
 def query_wiki(question: str, wiki_entries: list[dict]) -> QueryResult:
@@ -59,5 +72,4 @@ Question: {question}
 Respond with ONLY a JSON object matching this schema:
 {{"answer": "full answer in markdown", "sources": ["wiki title 1", "wiki title 2"]}}"""
 
-    response = _model.generate_content(prompt)
-    return _parse(response.text, QueryResult)
+    return _parse(_call(prompt), QueryResult)
