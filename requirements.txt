@@ -1,7 +1,7 @@
 # One-button install: pip install -r requirements.txt
 
-# Anthropic LLM
-anthropic
+# Google Gemini LLM (free tier)
+google-generativeai
 
 # Database (Supabase - handles both file storage and Postgres)
 supabase
@@ -15,7 +15,6 @@ fastapi
 uvicorn[standard]
 
 # Structured LLM outputs
-instructor
 pydantic
 
 # Utilities
