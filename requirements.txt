@@ -1,0 +1,23 @@
+# One-button install: pip install -r requirements.txt
+
+# Anthropic LLM
+anthropic
+
+# Database (Supabase - handles both file storage and Postgres)
+supabase
+
+# File extraction
+pdfplumber          # PDF text extraction
+python-docx         # DOCX text extraction
+
+# API server
+fastapi
+uvicorn[standard]
+
+# Structured LLM outputs
+instructor
+pydantic
+
+# Utilities
+python-dotenv       # Load .env config
+httpx               # Async HTTP calls
