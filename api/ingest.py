@@ -25,7 +25,10 @@ class handler(BaseHTTPRequestHandler):
             self._respond(400, {"error": str(e)})
             return
 
-        entry = synthesize.synthesize_to_wiki(text, filename)
+        all_entries = db.get_all_wiki_entries()
+        existing_tags = list({tag for e in all_entries for tag in e.get("tags", [])})
+
+        entry = synthesize.synthesize_to_wiki(text, filename, existing_tags or None)
 
         db.upsert_wiki_entry(
             title=entry.title,

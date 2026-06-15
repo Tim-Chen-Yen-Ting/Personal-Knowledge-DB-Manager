@@ -39,11 +39,16 @@ def _parse(text: str, model):
     return model.model_validate(json.loads(raw))
 
 
-def synthesize_to_wiki(raw_text: str, source_filename: str) -> WikiEntry:
+def synthesize_to_wiki(raw_text: str, source_filename: str, existing_tags: list[str] | None = None) -> WikiEntry:
+    tag_hint = (
+        f"\nExisting tags in the knowledge base: {', '.join(existing_tags)}. "
+        "Reuse these where appropriate. Only create new tags if the topic genuinely doesn't fit any existing ones."
+        if existing_tags else ""
+    )
     prompt = f"""You are a knowledge base curator.
 Read the following document and produce a structured wiki entry as JSON.
 
-Source file: {source_filename}
+Source file: {source_filename}{tag_hint}
 
 ---
 {raw_text}

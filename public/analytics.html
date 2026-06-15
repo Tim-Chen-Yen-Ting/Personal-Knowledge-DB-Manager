@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Knowledge Analytics</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #1a1a1a;
+      color: #e8e8e8;
+      min-height: 100dvh;
+    }
+
+    header {
+      padding: 14px 20px;
+      font-size: 15px;
+      font-weight: 600;
+      border-bottom: 1px solid #2e2e2e;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    header a {
+      color: #888;
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 400;
+    }
+
+    header a:hover { color: #fff; }
+
+    main {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 24px 16px 48px;
+      display: flex;
+      flex-direction: column;
+      gap: 36px;
+    }
+
+    .section-title {
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #666;
+      margin-bottom: 14px;
+    }
+
+    .card {
+      background: #222;
+      border: 1px solid #2e2e2e;
+      border-radius: 12px;
+      padding: 20px;
+    }
+
+    .stats-row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .stat-box {
+      flex: 1;
+      min-width: 120px;
+      background: #2a2a2a;
+      border-radius: 10px;
+      padding: 14px 16px;
+    }
+
+    .stat-box .num {
+      font-size: 28px;
+      font-weight: 700;
+      color: #fff;
+      line-height: 1;
+    }
+
+    .stat-box .label {
+      font-size: 12px;
+      color: #666;
+      margin-top: 4px;
+    }
+
+    canvas { max-height: 300px; }
+
+    /* Tag table */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    th {
+      text-align: left;
+      color: #666;
+      font-weight: 500;
+      padding: 6px 10px;
+      border-bottom: 1px solid #2e2e2e;
+    }
+
+    td {
+      padding: 8px 10px;
+      border-bottom: 1px solid #222;
+      vertical-align: middle;
+    }
+
+    tr:last-child td { border-bottom: none; }
+
+    .depth-bar-wrap {
+      background: #2a2a2a;
+      border-radius: 4px;
+      height: 6px;
+      width: 80px;
+      overflow: hidden;
+    }
+
+    .depth-bar {
+      height: 100%;
+      border-radius: 4px;
+      background: #2f6feb;
+    }
+
+    .stale-chip {
+      font-size: 11px;
+      padding: 2px 7px;
+      border-radius: 20px;
+      background: #2a2a2a;
+      color: #aaa;
+    }
+
+    .stale-chip.warn { background: #3a2a1a; color: #f0a040; }
+    .stale-chip.old  { background: #2a1a1a; color: #e05050; }
+
+    /* Co-occurrence */
+    .pair-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .pair-chip {
+      font-size: 12px;
+      background: #2a2a2a;
+      border-radius: 20px;
+      padding: 4px 10px;
+      color: #ccc;
+    }
+
+    .pair-chip .cnt {
+      color: #2f6feb;
+      font-weight: 600;
+      margin-left: 4px;
+    }
+
+    /* Audit section */
+    .audit-controls {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    select {
+      flex: 1;
+      background: #2a2a2a;
+      border: 1.5px solid #3a3a3a;
+      border-radius: 8px;
+      padding: 9px 12px;
+      color: #e8e8e8;
+      font-size: 14px;
+      outline: none;
+    }
+
+    select:focus { border-color: #2f6feb; }
+
+    button.run-btn {
+      background: #2f6feb;
+      border: none;
+      border-radius: 8px;
+      color: #fff;
+      font-size: 14px;
+      padding: 9px 18px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    button.run-btn:disabled { background: #333; color: #555; cursor: default; }
+
+    #audit-result {
+      display: none;
+    }
+
+    .audit-meta {
+      font-size: 12px;
+      color: #666;
+      margin-bottom: 16px;
+    }
+
+    .audit-summary {
+      font-size: 14px;
+      line-height: 1.6;
+      color: #ccc;
+      margin-bottom: 20px;
+    }
+
+    .audit-cols {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    @media (max-width: 600px) {
+      .audit-cols { grid-template-columns: 1fr; }
+    }
+
+    .audit-group h4 {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #666;
+      margin-bottom: 8px;
+    }
+
+    .audit-group ul {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .audit-group li {
+      font-size: 13px;
+      line-height: 1.4;
+      padding-left: 14px;
+      position: relative;
+      color: #ddd;
+    }
+
+    .audit-group li::before {
+      content: "•";
+      position: absolute;
+      left: 0;
+    }
+
+    .audit-group.strengths li::before { color: #3c9e6e; }
+    .audit-group.gaps li::before      { color: #e05050; }
+    .audit-group.suggestions li::before { color: #2f6feb; }
+
+    .depth-badge {
+      display: inline-block;
+      font-size: 11px;
+      padding: 3px 9px;
+      border-radius: 20px;
+      font-weight: 600;
+      margin-bottom: 14px;
+    }
+
+    .depth-badge.shallow  { background: #2a1a1a; color: #e05050; }
+    .depth-badge.moderate { background: #2a2210; color: #f0a040; }
+    .depth-badge.deep     { background: #0f2a1a; color: #3c9e6e; }
+
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: #555;
+      font-size: 14px;
+    }
+
+    .loader {
+      text-align: center;
+      padding: 24px;
+      color: #555;
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  Knowledge Analytics
+  <a href="/">← Chat</a>
+</header>
+
+<main>
+  <div id="loading" class="loader">Loading knowledge base...</div>
+  <div id="content" style="display:none; display:flex; flex-direction:column; gap:36px;">
+
+    <!-- Summary stats -->
+    <div>
+      <div class="section-title">Overview</div>
+      <div class="card">
+        <div class="stats-row">
+          <div class="stat-box">
+            <div class="num" id="stat-entries">—</div>
+            <div class="label">wiki entries</div>
+          </div>
+          <div class="stat-box">
+            <div class="num" id="stat-tags">—</div>
+            <div class="label">unique tags</div>
+          </div>
+          <div class="stat-box">
+            <div class="num" id="stat-top-tag">—</div>
+            <div class="label">most active tag</div>
+          </div>
+          <div class="stat-box">
+            <div class="num" id="stat-stale">—</div>
+            <div class="label">tags untouched 30d+</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tag frequency chart -->
+    <div>
+      <div class="section-title">Knowledge Distribution — entries per tag</div>
+      <div class="card">
+        <canvas id="chart-freq"></canvas>
+      </div>
+    </div>
+
+    <!-- Tag detail table -->
+    <div>
+      <div class="section-title">Tag Detail</div>
+      <div class="card" style="padding: 0; overflow: hidden;">
+        <table>
+          <thead>
+            <tr>
+              <th>Tag</th>
+              <th>Entries</th>
+              <th>Avg depth</th>
+              <th>Sources</th>
+              <th>Last updated</th>
+            </tr>
+          </thead>
+          <tbody id="tag-table"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Co-occurrence -->
+    <div>
+      <div class="section-title">Tag Co-occurrence — topics you study together</div>
+      <div class="card">
+        <div class="pair-list" id="co-list"></div>
+      </div>
+    </div>
+
+    <!-- Knowledge audit -->
+    <div>
+      <div class="section-title">Knowledge Audit — LLM gap analysis per tag</div>
+      <div class="card">
+        <div class="audit-controls">
+          <select id="audit-tag-select"></select>
+          <button class="run-btn" id="audit-run-btn">Analyse</button>
+        </div>
+        <div id="audit-loading" class="loader" style="display:none">Analysing with LLM (may take ~20s)...</div>
+        <div id="audit-result"></div>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<script>
+let statsData = null;
+
+async function load() {
+  const res = await fetch("/api/analytics");
+  statsData = await res.json();
+  render(statsData);
+  document.getElementById("loading").style.display = "none";
+  document.getElementById("content").style.display = "flex";
+}
+
+function render(d) {
+  // Overview
+  document.getElementById("stat-entries").textContent = d.total_entries;
+  document.getElementById("stat-tags").textContent = d.total_tags;
+  document.getElementById("stat-top-tag").textContent = d.tag_stats[0]?.tag ?? "—";
+  const staleCount = d.tag_stats.filter(t => t.days_since_update !== null && t.days_since_update >= 30).length;
+  document.getElementById("stat-stale").textContent = staleCount;
+
+  // Frequency chart
+  const labels = d.tag_stats.map(t => t.tag);
+  const counts = d.tag_stats.map(t => t.entry_count);
+  const maxWC = Math.max(...d.tag_stats.map(t => t.avg_word_count));
+
+  new Chart(document.getElementById("chart-freq"), {
+    type: "bar",
+    data: {
+      labels,
+      datasets: [{
+        label: "Entries",
+        data: counts,
+        backgroundColor: "#2f6feb",
+        borderRadius: 4,
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: "#888" }, grid: { color: "#2a2a2a" } },
+        y: { ticks: { color: "#888", stepSize: 1 }, grid: { color: "#2a2a2a" }, beginAtZero: true },
+      }
+    }
+  });
+
+  // Tag table
+  const tbody = document.getElementById("tag-table");
+  for (const t of d.tag_stats) {
+    const barWidth = Math.round((t.avg_word_count / maxWC) * 100);
+    const days = t.days_since_update;
+    let staleClass = "", staleLabel = "—";
+    if (days !== null) {
+      staleLabel = days === 0 ? "today" : `${days}d ago`;
+      staleClass = days >= 60 ? "old" : days >= 30 ? "warn" : "";
+    }
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${t.tag}</td>
+      <td>${t.entry_count}</td>
+      <td>
+        <div class="depth-bar-wrap" title="${t.avg_word_count} words avg">
+          <div class="depth-bar" style="width:${barWidth}%"></div>
+        </div>
+      </td>
+      <td>${t.source_count}</td>
+      <td><span class="stale-chip ${staleClass}">${staleLabel}</span></td>
+    `;
+    tbody.appendChild(tr);
+  }
+
+  // Co-occurrence
+  const coList = document.getElementById("co-list");
+  if (d.co_occurrence.length === 0) {
+    coList.innerHTML = '<span style="color:#555;font-size:13px">Not enough data yet — add more entries with overlapping tags.</span>';
+  }
+  for (const p of d.co_occurrence.slice(0, 30)) {
+    const chip = document.createElement("div");
+    chip.className = "pair-chip";
+    chip.innerHTML = `${p.a} + ${p.b}<span class="cnt">${p.count}</span>`;
+    coList.appendChild(chip);
+  }
+
+  // Audit tag select
+  const sel = document.getElementById("audit-tag-select");
+  for (const t of d.tag_stats) {
+    const opt = document.createElement("option");
+    opt.value = t.tag;
+    opt.textContent = `${t.tag} (${t.entry_count} entries)`;
+    sel.appendChild(opt);
+  }
+}
+
+document.getElementById("audit-run-btn").addEventListener("click", async () => {
+  const tag = document.getElementById("audit-tag-select").value;
+  if (!tag) return;
+
+  const btn = document.getElementById("audit-run-btn");
+  const loadEl = document.getElementById("audit-loading");
+  const resultEl = document.getElementById("audit-result");
+
+  btn.disabled = true;
+  loadEl.style.display = "block";
+  resultEl.style.display = "none";
+  resultEl.innerHTML = "";
+
+  try {
+    const res = await fetch("/api/audit", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ tag }),
+    });
+    const data = await res.json();
+    if (data.error) {
+      resultEl.innerHTML = `<div style="color:#e05050;font-size:13px">${data.error}</div>`;
+    } else {
+      renderAudit(data, resultEl);
+    }
+    resultEl.style.display = "block";
+  } catch (e) {
+    resultEl.innerHTML = '<div style="color:#e05050;font-size:13px">Request failed.</div>';
+    resultEl.style.display = "block";
+  }
+
+  loadEl.style.display = "none";
+  btn.disabled = false;
+});
+
+function renderAudit(d, el) {
+  const depthClass = d.depth_assessment || "moderate";
+  el.innerHTML = `
+    <div class="audit-meta">${d.entry_count} entries · tag: <strong>${d.tag}</strong></div>
+    <span class="depth-badge ${depthClass}">${depthClass}</span>
+    <div class="audit-summary">${d.summary}</div>
+    <div class="audit-cols">
+      <div class="audit-group strengths">
+        <h4>What you know well</h4>
+        <ul>${(d.strengths || []).map(s => `<li>${s}</li>`).join("")}</ul>
+      </div>
+      <div class="audit-group gaps">
+        <h4>Gaps</h4>
+        <ul>${(d.gaps || []).map(s => `<li>${s}</li>`).join("")}</ul>
+      </div>
+    </div>
+    <div class="audit-group suggestions" style="margin-top:16px">
+      <h4>Suggestions</h4>
+      <ul>${(d.suggestions || []).map(s => `<li>${s}</li>`).join("")}</ul>
+    </div>
+  `;
+}
+
+load().catch(e => {
+  document.getElementById("loading").textContent = "Failed to load. Are you logged in?";
+});
+</script>
+
+</body>
+</html>
