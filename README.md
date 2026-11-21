@@ -72,3 +72,7 @@ This is a personal tool, not a multi-user product.
 - One knowledge base per deployment. There are no accounts or per-user separation.
 - Context-injection retrieval has a ceiling (see above), and entries are keyed on title, so two documents that produce the same title will overwrite each other.
 - Only text-based files are supported. Scanned PDFs without a text layer won't extract.
+
+---
+
+Built by [Yen-Ting (Tim) Chen](https://tim-chen-yen-ting.github.io/) · [Portfolio](https://tim-chen-yen-ting.github.io/)
